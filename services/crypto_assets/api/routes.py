@@ -1,50 +1,58 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from services.crypto_assets.audit import record_audit
+from services.crypto_assets.audit import log_audit_event
 from services.crypto_assets.db import get_db
-from services.crypto_assets.models import (
-    Network,
-    WalletSourceType,
+from services.crypto_assets.models import Network
+from services.crypto_assets.repositories.counterparty_repository import CounterpartyRepository
+from services.crypto_assets.repositories.counterparty_wallet_link_repository import (
+    CounterpartyWalletLinkRepository,
 )
 from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
+from services.crypto_assets.schemas.counterparties import (
+    CounterpartyCreate,
+    CounterpartyRead,
+    CounterpartyUpdate,
+    CounterpartyWalletLinkCreate,
+    CounterpartyWalletLinkRead,
+)
 from services.crypto_assets.schemas.ingestion import IngestionRunRead
 from services.crypto_assets.schemas.transactions import TransactionRead
-from services.crypto_assets.schemas.wallets import WalletCreate, WalletRead, WalletUpdate
+from services.crypto_assets.schemas.wallets import WalletCreate, WalletRead
 from services.crypto_assets.security import CurrentUser, get_current_user
+from services.crypto_assets.service.counterparty_service import CounterpartyService
 from services.crypto_assets.service.ingestion_service import IngestionService
 from services.crypto_assets.service.transaction_service import TransactionService
 from services.crypto_assets.service.wallet_service import WalletService
 
-router = APIRouter(prefix="/crypto", tags=["crypto"])
+router = APIRouter(prefix="/crypto", tags=["crypto-assets"])
 
 
-def ensure_default_network(db: Session) -> Network:
+def require_write_role(user: CurrentUser) -> None:
+    if user.role not in {"FINANCE_DIRECTOR", "HEAD_OF_PAYMENTS"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Insufficient permissions",
+        )
+
+
+def ensure_default_network(db: Session) -> None:
     network = db.query(Network).filter_by(identifier="ethereum").first()
     if not network:
         network = Network(name="Ethereum", identifier="ethereum")
         db.add(network)
         db.commit()
-        db.refresh(network)
-    return network
 
 
 @router.get("/wallets", response_model=list[WalletRead])
 def list_wallets(
-    network_id: int | None = Query(default=None),
-    source_type: WalletSourceType | None = Query(default=None),
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ):
     service = WalletService(WalletRepository(db))
-    wallets = service.list_wallets()
-    if network_id is not None:
-        wallets = [w for w in wallets if w.network_id == network_id]
-    if source_type is not None:
-        wallets = [w for w in wallets if w.source_type == source_type]
-    return wallets
+    return service.list_wallets()
 
 
 @router.post("/wallets", response_model=WalletRead)
@@ -53,15 +61,11 @@ def create_wallet(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ):
+    require_write_role(user)
+    ensure_default_network(db)
     service = WalletService(WalletRepository(db))
     wallet = service.create_wallet(payload)
-    record_audit(
-        actor=user.username,
-        action="CREATE_WALLET",
-        object_type="wallet",
-        object_ref=str(wallet.id),
-        after={"address": wallet.address, "network_id": wallet.network_id},
-    )
+    log_audit_event(user.username, "CREATE_WALLET", {"wallet_id": wallet.id, "address": wallet.address})
     return wallet
 
 
@@ -78,58 +82,19 @@ def get_wallet(
     return wallet
 
 
-@router.patch("/wallets/{wallet_id}", response_model=WalletRead)
-def update_wallet(
-    wallet_id: int,
-    payload: WalletUpdate,
-    db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-):
-    service = WalletService(WalletRepository(db))
-    existing = service.get_wallet(wallet_id)
-    if existing is None:
-        raise HTTPException(status_code=404, detail="Wallet not found")
-    before = {
-        "display_name": existing.display_name,
-        "source_ref": existing.source_ref,
-        "wallet_type": existing.wallet_type.value,
-        "status": existing.status.value,
-    }
-    wallet = service.update_wallet(wallet_id, payload)
-    record_audit(
-        actor=user.username,
-        action="UPDATE_WALLET",
-        object_type="wallet",
-        object_ref=str(wallet.id),
-        before=before,
-        after={
-            "display_name": wallet.display_name,
-            "source_ref": wallet.source_ref,
-            "wallet_type": wallet.wallet_type.value,
-            "status": wallet.status.value,
-        },
-    )
-    return wallet
-
-
 @router.post("/ingestion/ailink-sync", response_model=IngestionRunRead)
 def run_ailink_sync(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ):
+    require_write_role(user)
     ensure_default_network(db)
     service = IngestionService(
         ingestion_repo=IngestionRunRepository(db),
         wallet_repo=WalletRepository(db),
     )
     run = service.run_ailink_wallet_sync()
-    record_audit(
-        actor=user.username,
-        action="TRIGGER_AILINK_SYNC",
-        object_type="ingestion_run",
-        object_ref=str(run.id),
-        after=run.stats_json,
-    )
+    log_audit_event(user.username, "RUN_AILINK_SYNC", {"run_id": run.id, "status": run.status.value})
     return run
 
 
@@ -142,43 +107,140 @@ def list_ingestion_runs(
     return repo.list()
 
 
-@router.get("/ingestion/runs/{run_id}", response_model=IngestionRunRead)
-def get_ingestion_run(
-    run_id: int,
-    db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-):
-    repo = IngestionRunRepository(db)
-    run = repo.get(run_id)
-    if run is None:
-        raise HTTPException(status_code=404, detail="Ingestion run not found")
-    return run
-
-
 @router.get("/transactions", response_model=list[TransactionRead])
 def list_transactions(
-    wallet_id: int | None = Query(default=None),
-    source_type: WalletSourceType | None = Query(default=None),
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ):
     service = TransactionService(TransactionRepository(db))
-    txs = service.list_transactions()
-    if wallet_id is not None:
-        txs = [t for t in txs if t.internal_wallet_id == wallet_id]
-    if source_type is not None:
-        txs = [t for t in txs if t.source_type == source_type]
-    return txs
+    return service.list_transactions()
 
 
-@router.get("/transactions/{transaction_id}", response_model=TransactionRead)
-def get_transaction(
-    transaction_id: int,
+@router.get("/counterparties", response_model=list[CounterpartyRead])
+def list_counterparties(
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ):
-    service = TransactionService(TransactionRepository(db))
-    tx = service.get_transaction(transaction_id)
-    if tx is None:
-        raise HTTPException(status_code=404, detail="Transaction not found")
-    return tx
+    service = CounterpartyService(
+        repo=CounterpartyRepository(db),
+        link_repo=CounterpartyWalletLinkRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    return service.list_counterparties()
+
+
+@router.post("/counterparties", response_model=CounterpartyRead)
+def create_counterparty(
+    payload: CounterpartyCreate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_role(user)
+    service = CounterpartyService(
+        repo=CounterpartyRepository(db),
+        link_repo=CounterpartyWalletLinkRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    counterparty = service.create_counterparty(payload)
+    log_audit_event(
+        user.username,
+        "CREATE_COUNTERPARTY",
+        {"counterparty_id": counterparty.id, "name": counterparty.name},
+    )
+    return counterparty
+
+
+@router.get("/counterparties/{counterparty_id}", response_model=CounterpartyRead)
+def get_counterparty(
+    counterparty_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    service = CounterpartyService(
+        repo=CounterpartyRepository(db),
+        link_repo=CounterpartyWalletLinkRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    counterparty = service.get_counterparty(counterparty_id)
+    if counterparty is None:
+        raise HTTPException(status_code=404, detail="Counterparty not found")
+    return counterparty
+
+
+@router.put("/counterparties/{counterparty_id}", response_model=CounterpartyRead)
+def update_counterparty(
+    counterparty_id: int,
+    payload: CounterpartyUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_role(user)
+    service = CounterpartyService(
+        repo=CounterpartyRepository(db),
+        link_repo=CounterpartyWalletLinkRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    counterparty = service.update_counterparty(counterparty_id, payload)
+    if counterparty is None:
+        raise HTTPException(status_code=404, detail="Counterparty not found")
+    log_audit_event(
+        user.username,
+        "UPDATE_COUNTERPARTY",
+        {"counterparty_id": counterparty.id},
+    )
+    return counterparty
+
+
+@router.delete("/counterparties/{counterparty_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_counterparty(
+    counterparty_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_role(user)
+    service = CounterpartyService(
+        repo=CounterpartyRepository(db),
+        link_repo=CounterpartyWalletLinkRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    deleted = service.delete_counterparty(counterparty_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Counterparty not found")
+    log_audit_event(user.username, "DELETE_COUNTERPARTY", {"counterparty_id": counterparty_id})
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/counterparty-wallet-links", response_model=list[CounterpartyWalletLinkRead])
+def list_counterparty_wallet_links(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    service = CounterpartyService(
+        repo=CounterpartyRepository(db),
+        link_repo=CounterpartyWalletLinkRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    return service.list_links()
+
+
+@router.post("/counterparty-wallet-links", response_model=CounterpartyWalletLinkRead)
+def create_counterparty_wallet_link(
+    payload: CounterpartyWalletLinkCreate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_role(user)
+    service = CounterpartyService(
+        repo=CounterpartyRepository(db),
+        link_repo=CounterpartyWalletLinkRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    link = service.link_wallet(payload)
+    if link is None:
+        raise HTTPException(status_code=404, detail="Counterparty or wallet not found")
+    log_audit_event(
+        user.username,
+        "LINK_COUNTERPARTY_WALLET",
+        {"counterparty_id": link.counterparty_id, "wallet_id": link.wallet_id},
+    )
+    return link
