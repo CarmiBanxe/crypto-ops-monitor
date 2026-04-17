@@ -40,3 +40,7 @@ __all__ = [
     "CanonicalTransaction",
     "WalletBalanceSnapshot",
 ]
+
+from .comments import TransactionComment, TransactionTag
+
+__all__ += ["TransactionComment", "TransactionTag"]
