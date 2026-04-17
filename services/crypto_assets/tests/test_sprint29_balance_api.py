@@ -1,6 +1,5 @@
 from fastapi.testclient import TestClient
 from api.main import app
-from services.crypto_assets.models import WalletSourceType, WalletType
 
 client = TestClient(app)
 

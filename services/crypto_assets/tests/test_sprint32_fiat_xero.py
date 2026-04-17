@@ -1,8 +1,7 @@
 from decimal import Decimal
 import services.crypto_assets.db as db_mod
 from services.crypto_assets.models import (
-    Network, Wallet, WalletSourceType, WalletType,
-    CanonicalTransaction, Direction, ClassificationRule,
+    Network, WalletSourceType, CanonicalTransaction, Direction, ClassificationRule,
 )
 from services.crypto_assets.service.fiat_service import FiatConversionService
 from services.crypto_assets.service.classification_service import ClassificationService

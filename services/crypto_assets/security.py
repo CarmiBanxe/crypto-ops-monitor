@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from fastapi import Header, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 
 
 @dataclass
@@ -32,7 +32,7 @@ def get_current_user(authorization: str | None = Header(default=None)) -> Curren
 
 
 def require_roles(*allowed_roles: str):
-    def checker(user: CurrentUser = get_current_user) -> CurrentUser:
+    def checker(user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
         if user.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

@@ -1,4 +1,3 @@
-from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from services.crypto_assets.models import XeroPosting, CanonicalTransaction, Direction

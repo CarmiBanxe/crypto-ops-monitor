@@ -1,6 +1,5 @@
 from services.crypto_assets.models.comments import TransactionComment
 from services.crypto_assets.repositories.comment_repository import CommentRepository
-from services.crypto_assets.schemas.comments import TransactionCommentCreate
 
 
 class CommentService:

@@ -8,8 +8,6 @@ from services.crypto_assets.repositories.approval_repository import ApprovalRepo
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.schemas.wallets import WalletCreate
 from services.crypto_assets.service.wallet_service import WalletService
-from services.crypto_assets.service.rbac import require_write_access
-from services.crypto_assets.security import CurrentUser
 
 client = TestClient(app)
 

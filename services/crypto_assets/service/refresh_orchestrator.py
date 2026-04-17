@@ -29,7 +29,7 @@ class RefreshAllOrchestrator:
         errors = 0
         for wallet in self.wallet_repo.list():
             try:
-                connector = self.registry.get_blockchain_connector_for_wallet(wallet)
+                connector = self.registry.get_blockchain_connector("ethereum")
                 if connector is None:
                     continue
                 amount = connector.fetch_balance(wallet.address, token_symbol)

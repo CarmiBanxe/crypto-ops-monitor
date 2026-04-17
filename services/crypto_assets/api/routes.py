@@ -1,8 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
-from services.crypto_assets.audit import AUDIT_LOG, log_audit_event
+from services.crypto_assets.audit import log_audit_event
 from services.crypto_assets.db import get_db
 from services.crypto_assets.models import (
     Network,
@@ -12,7 +11,6 @@ from services.crypto_assets.models.folders import WalletFolder, WalletFolderLink
 from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
-from services.crypto_assets.repositories.comment_repository import CommentRepository
 from services.crypto_assets.repositories.folder_repository import FolderRepository
 from services.crypto_assets.repositories.approval_repository import ApprovalRepository
 from services.crypto_assets.schemas.ingestion import IngestionRunRead
@@ -29,7 +27,6 @@ from services.crypto_assets.security import CurrentUser, get_current_user
 from services.crypto_assets.service.ingestion_service import IngestionService
 from services.crypto_assets.service.transaction_service import TransactionService
 from services.crypto_assets.service.wallet_service import WalletService
-from services.crypto_assets.service.export_service import ExportService
 from services.crypto_assets.service.rbac import require_write_access
 
 router = APIRouter(prefix="/crypto", tags=["crypto"])

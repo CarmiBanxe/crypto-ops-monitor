@@ -41,7 +41,7 @@ def test_wallet_service_create_and_list():
 def test_mock_ailink_sync_creates_wallets():
     db = db_mod.SessionLocal()
     try:
-        network = seed_ethereum(db)
+        seed_ethereum(db)
         service = IngestionService(
             ingestion_repo=IngestionRunRepository(db),
             wallet_repo=WalletRepository(db),
@@ -56,7 +56,7 @@ def test_mock_ailink_sync_creates_wallets():
 def test_mock_ailink_sync_is_idempotent():
     db = db_mod.SessionLocal()
     try:
-        network = seed_ethereum(db)
+        seed_ethereum(db)
         service = IngestionService(
             ingestion_repo=IngestionRunRepository(db),
             wallet_repo=WalletRepository(db),

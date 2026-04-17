@@ -5,12 +5,8 @@ from services.crypto_assets.models import (
 )
 from services.crypto_assets.repositories.balance_repository import BalanceRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
-from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
 from services.crypto_assets.service.balance_service import BalanceService
 from services.crypto_assets.service.reconciliation_service import ReconciliationService
-from services.crypto_assets.service.refresh_orchestrator import RefreshAllOrchestrator
-from services.crypto_assets.service.source_registry import SourceRegistry
-from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnector
 
 
 def get_or_create_network(db, identifier="ethereum", name="Ethereum"):
@@ -63,7 +59,7 @@ def test_reconciliation_ok_and_mismatch():
 def test_reconciliation_scan_coverage():
     db = db_mod.SessionLocal()
     try:
-        wallet = seed_wallet(db, "0xrec002")
+        seed_wallet(db, "0xrec002")
         rec = ReconciliationService(BalanceRepository(db), WalletRepository(db))
         result = rec.scan_all_wallets("USDC")
         assert "total_wallets" in result
