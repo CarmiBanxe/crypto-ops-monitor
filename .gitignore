@@ -1,0 +1,7 @@
+data/
+compliance-experiments/draft/
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+*_test.db
