@@ -7,3 +7,5 @@ __pycache__/
 *_test.db
 crypto_ops_monitor.db
 *.egg-info/
+
+.coverage
