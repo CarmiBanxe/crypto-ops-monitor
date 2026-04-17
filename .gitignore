@@ -5,3 +5,5 @@ __pycache__/
 .pytest_cache/
 *.pyc
 *_test.db
+crypto_ops_monitor.db
+*.egg-info/
