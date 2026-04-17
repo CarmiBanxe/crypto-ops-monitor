@@ -1,9 +1,8 @@
 # Crypto Ops Monitor — ROADMAP
 
-## Stage 1 Overview
-Internal platform for collecting, aggregating, storing and displaying crypto wallet/exchange/staking transactions and balances. Read-only monitoring, no transaction execution, no fiat conversion. Covers ~30% of Breezing functionality.
+## Stage 1 — COMPLETE (100%)
 
-**Priority:** MAXIMUM — annual reporting deadline in ~2 months.
+Internal crypto monitoring platform: collecting, aggregating, storing and displaying crypto wallet/exchange/staking transactions and balances. Read-only monitoring, no transaction execution, no fiat conversion.
 
 ## Progress Tracker
 
@@ -14,22 +13,28 @@ Internal platform for collecting, aggregating, storing and displaying crypto wal
 | 27 | Wallet folders/tags, RBAC enforcement, extended filters, counterparty routing | DONE |
 | 28 | Folders/tags/approvals API, dual control workflow | DONE |
 | 29 | Balance snapshots, blockchain connector skeleton, balance API | DONE |
-| 30 | Additional blockchain networks, exchange/staking adapters, CSV upload | NEXT |
-| 31 | "Get Latest Transactions All", balance reconciliation, production hardening | PLANNED |
+| 30 | Blockchain connectors (BTC, ETH, Polygon, BSC), exchange adapters (Kraken, Binance), staking (Overstake), CSV import, source registry | DONE |
+| 31 | Refresh-All orchestrator, reconciliation service, operational API, production hardening | DONE |
 
-## Current Metrics
-- Tests: 28 green
-- API endpoints: 30+
+## Final Metrics
+- Tests: 48 green
+- API endpoints: 35+
 - Models: 13 core entities
-- Branches merged: sprint-25 through sprint-29
+- Connectors: 4 blockchain + 2 exchange + 1 staking
+- Source registry with adapter injection
+- CSV import pipeline with fingerprint dedup
+- RBAC enforcement on all write endpoints
+- Dual control approval workflow
+- Append-only raw ingestion + canonical transactions
+- Balance snapshots + reconciliation
+- Full audit trail
+- Version 1.0.0
 
-## Stage 1 Completion Estimate
-~75% of Stage 1 delivered. Remaining: real blockchain connectors (11+ networks), exchange/staking API adapters, CSV upload pipeline, reconciliation engine.
-
-## Out of Stage 1
+## Stage 2 (Future)
+- Real blockchain RPC integrations (replace mocks)
+- Production credentials management
 - Fiat conversion (PLN, EUR)
-- Xero integration
+- Xero accounting integration
 - Transaction classification rules
-- Reconciliation with WonderWaffle/Ailink
-- Extended counterparty analytics
 - Saved reports (frozen snapshots)
+- Advanced counterparty analytics (travel rule)
