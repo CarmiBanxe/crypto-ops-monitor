@@ -9,9 +9,12 @@ from services.crypto_assets.service.export_service import ExportService
 
 
 def seed_tx(db):
-    network = Network(name="Ethereum", identifier="ethereum")
-    db.add(network)
-    db.commit()
+    network = db.query(Network).filter_by(identifier="ethereum").first()
+    if network is None:
+        network = Network(name="Ethereum", identifier="ethereum")
+        db.add(network)
+        db.commit()
+        db.refresh(network)
     tx = CanonicalTransaction(
         tx_datetime="2026-04-17T10:00:00Z",
         direction=Direction.IN,

@@ -1,54 +1,63 @@
 import csv
 import io
-from decimal import Decimal
-from services.crypto_assets.models import CanonicalTransaction
 
 
 class ExportService:
-    HEADERS = [
-        "id", "tx_datetime", "direction", "amount", "token_symbol",
-        "tx_hash", "internal_wallet_id", "external_wallet",
-        "counterparty_id", "source_type", "notes",
+    headers = [
+        "id",
+        "tx_datetime",
+        "direction",
+        "amount",
+        "token_symbol",
+        "tx_hash",
+        "external_wallet",
+        "counterparty_id",
+        "source_type",
+        "notes",
     ]
 
-    @staticmethod
-    def transactions_to_csv(transactions: list[CanonicalTransaction]) -> str:
-        output = io.StringIO()
-        writer = csv.writer(output)
-        writer.writerow(ExportService.HEADERS)
-        for tx in transactions:
-            writer.writerow([
-                tx.id,
-                tx.tx_datetime,
-                tx.direction.value if tx.direction else "",
-                format(tx.amount, "f") if isinstance(tx.amount, Decimal) else str(tx.amount),
-                tx.token_symbol,
-                tx.tx_hash,
-                tx.internal_wallet_id or "",
-                tx.external_wallet or "",
-                tx.counterparty_id or "",
-                tx.source_type.value if tx.source_type else "",
-                tx.notes or "",
-            ])
-        return output.getvalue()
+    @classmethod
+    def transactions_to_csv(cls, transactions) -> str:
+        return cls().to_csv(transactions)
 
-    @staticmethod
-    def transactions_to_tsv(transactions: list[CanonicalTransaction]) -> str:
-        output = io.StringIO()
-        writer = csv.writer(output, delimiter="\t")
-        writer.writerow(ExportService.HEADERS)
+    @classmethod
+    def transactions_to_tsv(cls, transactions) -> str:
+        return cls().to_tsv(transactions)
+
+    def to_csv(self, transactions) -> str:
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
+        writer.writerow(self.headers)
         for tx in transactions:
             writer.writerow([
                 tx.id,
                 tx.tx_datetime,
-                tx.direction.value if tx.direction else "",
-                format(tx.amount, "f") if isinstance(tx.amount, Decimal) else str(tx.amount),
+                getattr(tx.direction, "value", tx.direction),
+                tx.amount,
                 tx.token_symbol,
                 tx.tx_hash,
-                tx.internal_wallet_id or "",
-                tx.external_wallet or "",
-                tx.counterparty_id or "",
-                tx.source_type.value if tx.source_type else "",
-                tx.notes or "",
+                tx.external_wallet,
+                tx.counterparty_id,
+                getattr(tx.source_type, "value", tx.source_type),
+                tx.notes,
             ])
-        return output.getvalue()
+        return buffer.getvalue()
+
+    def to_tsv(self, transactions) -> str:
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, delimiter="\t")
+        writer.writerow(self.headers)
+        for tx in transactions:
+            writer.writerow([
+                tx.id,
+                tx.tx_datetime,
+                getattr(tx.direction, "value", tx.direction),
+                tx.amount,
+                tx.token_symbol,
+                tx.tx_hash,
+                tx.external_wallet,
+                tx.counterparty_id,
+                getattr(tx.source_type, "value", tx.source_type),
+                tx.notes,
+            ])
+        return buffer.getvalue()

@@ -12,11 +12,9 @@ from services.crypto_assets.repositories.ingestion_repository import IngestionRu
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.repositories.comment_repository import CommentRepository
-from services.crypto_assets.models.comments import TransactionComment, TransactionTag
 from services.crypto_assets.schemas.ingestion import IngestionRunRead
 from services.crypto_assets.schemas.transactions import TransactionRead
 from services.crypto_assets.schemas.wallets import WalletCreate, WalletRead, WalletUpdate
-from services.crypto_assets.schemas.comments import CommentCreate, CommentRead, TagCreate, TagRead
 from services.crypto_assets.security import CurrentUser, get_current_user
 from services.crypto_assets.service.ingestion_service import IngestionService
 from services.crypto_assets.service.transaction_service import TransactionService
@@ -212,62 +210,3 @@ def get_transaction(
 
 # --- Transaction Comments/Tags ---
 
-@router.post("/transactions/{transaction_id}/comments", response_model=CommentRead)
-def add_comment(
-    transaction_id: int,
-    payload: CommentCreate,
-    db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-):
-    repo = CommentRepository(db)
-    comment = repo.create_comment(TransactionComment(
-        transaction_id=transaction_id,
-        author=user.username,
-        body=payload.body,
-    ))
-    return comment
-
-
-@router.get("/transactions/{transaction_id}/comments", response_model=list[CommentRead])
-def list_comments(
-    transaction_id: int,
-    db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-):
-    repo = CommentRepository(db)
-    return repo.list_by_transaction(transaction_id)
-
-
-@router.post("/transactions/{transaction_id}/tags", response_model=TagRead)
-def add_tag(
-    transaction_id: int,
-    payload: TagCreate,
-    db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-):
-    repo = CommentRepository(db)
-    tag = repo.create_tag(TransactionTag(
-        transaction_id=transaction_id,
-        tag=payload.tag,
-        author=user.username,
-    ))
-    return tag
-
-
-# --- Export ---
-
-@router.get("/transactions/export/csv")
-def export_csv(
-    wallet_id: int | None = Query(default=None),
-    token_symbol: str | None = Query(default=None),
-    db: Session = Depends(get_db),
-    user: CurrentUser = Depends(get_current_user),
-):
-    service = TransactionService(TransactionRepository(db))
-    txs = service.list_transactions()
-    if wallet_id is not None:
-        txs = [t for t in txs if t.internal_wallet_id == wallet_id]
-    if token_symbol is not None:
-        txs = [t for t in txs if t.token_symbol.upper() == token_symbol.upper()]
-    csv_data = ExportService.transactions_to_csv(txs)
-    return PlainTextResponse(content=csv_data, media_type="text/csv")

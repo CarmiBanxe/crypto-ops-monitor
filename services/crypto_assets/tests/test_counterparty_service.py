@@ -14,10 +14,12 @@ from services.crypto_assets.schemas.counterparties import (
 
 
 def seed_ethereum(db):
-    network = Network(name="Ethereum", identifier="ethereum")
-    db.add(network)
-    db.commit()
-    db.refresh(network)
+    network = db.query(Network).filter_by(identifier="ethereum").first()
+    if network is None:
+        network = Network(name="Ethereum", identifier="ethereum")
+        db.add(network)
+        db.commit()
+        db.refresh(network)
     return network
 
 
