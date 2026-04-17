@@ -1,0 +1,495 @@
+=== folders.py ===
+from sqlalchemy import String, ForeignKey, Index, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
+
+from .base import Base, TimestampMixin
+
+
+class WalletFolder(TimestampMixin, Base):
+    __tablename__ = "crypto_wallet_folders"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+    parent_id: Mapped[int | None] = mapped_column(
+        ForeignKey("crypto_wallet_folders.id"),
+        nullable=True,
+    )
+    created_by: Mapped[str] = mapped_column(String(120), nullable=False)
+
+
+class WalletFolderLink(TimestampMixin, Base):
+    __tablename__ = "crypto_wallet_folder_links"
+    __table_args__ = (
+        UniqueConstraint("folder_id", "wallet_id", name="uq_folder_wallet_link"),
+        Index("ix_crypto_wallet_folder_links_folder_id", "folder_id"),
+        Index("ix_crypto_wallet_folder_links_wallet_id", "wallet_id"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    folder_id: Mapped[int] = mapped_column(
+        ForeignKey("crypto_wallet_folders.id"),
+        nullable=False,
+    )
+    wallet_id: Mapped[int] = mapped_column(
+        ForeignKey("crypto_wallets.id"),
+        nullable=False,
+    )
+
+=== approval_repository.py ===
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from services.crypto_assets.models.folders import ApprovalRequest
+
+
+class ApprovalRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create(self, req: ApprovalRequest) -> ApprovalRequest:
+        self.db.add(req)
+        self.db.commit()
+        self.db.refresh(req)
+        return req
+
+    def get(self, req_id: int) -> ApprovalRequest | None:
+        return self.db.get(ApprovalRequest, req_id)
+
+    def list_pending(self) -> list[ApprovalRequest]:
+        stmt = select(ApprovalRequest).where(
+            ApprovalRequest.status == "PENDING"
+        ).order_by(ApprovalRequest.id.desc())
+        return list(self.db.scalars(stmt).all())
+
+    def update(self, req: ApprovalRequest) -> ApprovalRequest:
+        self.db.add(req)
+        self.db.commit()
+        self.db.refresh(req)
+        return req
+
+=== folder_repository.py ===
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from services.crypto_assets.models.folders import WalletFolder, WalletFolderLink, WalletTag
+
+
+class FolderRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def create_folder(self, folder: WalletFolder) -> WalletFolder:
+        self.db.add(folder)
+        self.db.commit()
+        self.db.refresh(folder)
+        return folder
+
+    def list_folders(self) -> list[WalletFolder]:
+        return list(self.db.scalars(select(WalletFolder).order_by(WalletFolder.id)).all())
+
+    def add_wallet_to_folder(self, link: WalletFolderLink) -> WalletFolderLink:
+        self.db.add(link)
+        self.db.commit()
+        self.db.refresh(link)
+        return link
+
+    def list_wallets_in_folder(self, folder_id: int) -> list[int]:
+        stmt = select(WalletFolderLink.wallet_id).where(
+            WalletFolderLink.folder_id == folder_id
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def create_wallet_tag(self, tag: WalletTag) -> WalletTag:
+        self.db.add(tag)
+        self.db.commit()
+        self.db.refresh(tag)
+        return tag
+
+    def list_tags_for_wallet(self, wallet_id: int) -> list[WalletTag]:
+        stmt = select(WalletTag).where(WalletTag.wallet_id == wallet_id).order_by(WalletTag.id)
+        return list(self.db.scalars(stmt).all())
+
+=== schemas/folders.py ===
+from pydantic import BaseModel, ConfigDict
+
+
+class FolderCreate(BaseModel):
+    name: str
+    parent_id: int | None = None
+
+
+class FolderRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    name: str
+    parent_id: int | None
+    created_by: str
+
+
+class WalletTagCreate(BaseModel):
+    tag: str
+
+
+class WalletTagRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    wallet_id: int
+    tag: str
+    author: str
+
+
+class ApprovalRequestRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    action_type: str
+    object_type: str
+    object_ref: str
+    payload_json: str | None
+    status: str
+    initiator: str
+    approver: str | None
+
+=== _test_sprint27_folders_rbac.py ===
+import services.crypto_assets.db as db_mod
+from fastapi.testclient import TestClient
+from api.main import app
+from services.crypto_assets.models import Network, WalletSourceType, WalletType
+from services.crypto_assets.models.folders import WalletFolder, WalletFolderLink, WalletTag, ApprovalRequest
+from services.crypto_assets.repositories.folder_repository import FolderRepository
+from services.crypto_assets.repositories.approval_repository import ApprovalRepository
+from services.crypto_assets.repositories.wallet_repository import WalletRepository
+from services.crypto_assets.schemas.wallets import WalletCreate
+from services.crypto_assets.service.wallet_service import WalletService
+from services.crypto_assets.service.rbac import require_write_access
+from services.crypto_assets.security import CurrentUser
+
+client = TestClient(app)
+
+
+def auth_headers(token: str = "finance-director-token") -> dict:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def ops_headers() -> dict:
+    return {"Authorization": "Bearer operations-token"}
+
+
+def seed(db):
+    network = Network(name="Ethereum", identifier="ethereum")
+    db.add(network)
+    db.commit()
+    db.refresh(network)
+    return network
+
+
+def test_folder_create_and_wallet_assignment():
+    db = db_mod.SessionLocal()
+    try:
+        network = seed(db)
+        wallet_svc = WalletService(WalletRepository(db))
+        wallet = wallet_svc.create_wallet(WalletCreate(
+            address="0xfolder01",
+            display_name="Folder Wallet",
+            network_id=network.id,
+            source_type=WalletSourceType.MANUAL,
+            wallet_type=WalletType.NON_CUSTODY,
+        ))
+
+        repo = FolderRepository(db)
+        folder = repo.create_folder(WalletFolder(name="Hot Wallets", created_by="lidia"))
+        assert folder.id is not None
+
+        link = repo.add_wallet_to_folder(WalletFolderLink(
+            folder_id=folder.id, wallet_id=wallet.id,
+        ))
+        assert link.id is not None
+
+        wallet_ids = repo.list_wallets_in_folder(folder.id)
+        assert wallet.id in wallet_ids
+    finally:
+        db.close()
+
+
+def test_wallet_tags():
+    db = db_mod.SessionLocal()
+    try:
+        network = seed(db)
+        wallet_svc = WalletService(WalletRepository(db))
+        wallet = wallet_svc.create_wallet(WalletCreate(
+            address="0xtag01",
+            display_name="Tag Wallet",
+            network_id=network.id,
+            source_type=WalletSourceType.MANUAL,
+            wallet_type=WalletType.NON_CUSTODY,
+        ))
+
+        repo = FolderRepository(db)
+        tag = repo.create_wallet_tag(WalletTag(
+            wallet_id=wallet.id, tag="REVIEW_NEEDED", author="sasha",
+        ))
+        assert tag.id is not None
+
+        tags = repo.list_tags_for_wallet(wallet.id)
+        assert len(tags) == 1
+        assert tags[0].tag == "REVIEW_NEEDED"
+    finally:
+        db.close()
+
+
+def test_approval_request_lifecycle():
+    db = db_mod.SessionLocal()
+    try:
+        repo = ApprovalRepository(db)
+        req = repo.create(ApprovalRequest(
+            action_type="DELETE_WALLET",
+            object_type="wallet",
+            object_ref="42",
+            payload_json='{"reason": "duplicate"}',
+            status="PENDING",
+            initiator="anton",
+        ))
+        assert req.id is not None
+        assert req.status == "PENDING"
+
+        pending = repo.list_pending()
+        assert any(r.id == req.id for r in pending)
+
+        req.status = "APPROVED"
+        req.approver = "lidia"
+        updated = repo.update(req)
+        assert updated.status == "APPROVED"
+        assert updated.approver == "lidia"
+    finally:
+        db.close()
+
+
+def test_rbac_operations_cannot_create_wallet():
+    response = client.post(
+        "/crypto/wallets",
+        headers=ops_headers(),
+        json={
+            "address": "0xrbac01",
+            "display_name": "RBAC Test",
+            "network_id": 1,
+            "source_type": "MANUAL",
+            "wallet_type": "NON_CUSTODY",
+        },
+    )
+    assert response.status_code == 403
+
+
+def test_rbac_operations_can_read_wallets():
+    response = client.get("/crypto/wallets", headers=ops_headers())
+    assert response.status_code == 200
+
+=== api/routes.py ===
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import PlainTextResponse
+from sqlalchemy.orm import Session
+
+from services.crypto_assets.audit import AUDIT_LOG, log_audit_event
+from services.crypto_assets.db import get_db
+from services.crypto_assets.models import (
+    Network,
+    WalletSourceType,
+)
+from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
+from services.crypto_assets.repositories.transaction_repository import TransactionRepository
+from services.crypto_assets.repositories.wallet_repository import WalletRepository
+from services.crypto_assets.repositories.comment_repository import CommentRepository
+from services.crypto_assets.schemas.ingestion import IngestionRunRead
+from services.crypto_assets.schemas.transactions import TransactionRead
+from services.crypto_assets.schemas.wallets import WalletCreate, WalletRead, WalletUpdate
+from services.crypto_assets.security import CurrentUser, get_current_user
+from services.crypto_assets.service.ingestion_service import IngestionService
+from services.crypto_assets.service.transaction_service import TransactionService
+from services.crypto_assets.service.wallet_service import WalletService
+from services.crypto_assets.service.export_service import ExportService
+from services.crypto_assets.service.rbac import require_write_access
+
+router = APIRouter(prefix="/crypto", tags=["crypto"])
+
+
+def ensure_default_network(db: Session) -> Network:
+    network = db.query(Network).filter_by(identifier="ethereum").first()
+    if not network:
+        network = Network(name="Ethereum", identifier="ethereum")
+        db.add(network)
+        db.commit()
+        db.refresh(network)
+    return network
+
+
+# --- Wallets ---
+
+@router.get("/wallets", response_model=list[WalletRead])
+def list_wallets(
+    network_id: int | None = Query(default=None),
+    source_type: WalletSourceType | None = Query(default=None),
+    display_name: str | None = Query(default=None),
+    address: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    service = WalletService(WalletRepository(db))
+    wallets = service.list_wallets()
+    if network_id is not None:
+        wallets = [w for w in wallets if w.network_id == network_id]
+    if source_type is not None:
+        wallets = [w for w in wallets if w.source_type == source_type]
+    if display_name is not None:
+        wallets = [w for w in wallets if w.display_name and display_name.lower() in w.display_name.lower()]
+    if address is not None:
+        wallets = [w for w in wallets if address.lower() in w.address.lower()]
+    return wallets
+
+
+@router.post("/wallets", response_model=WalletRead)
+def create_wallet(
+    payload: WalletCreate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    service = WalletService(WalletRepository(db))
+    wallet = service.create_wallet(payload)
+    log_audit_event(
+        actor=user.username,
+        action="CREATE_WALLET",
+        details={"address": wallet.address, "network_id": wallet.network_id},
+    )
+    return wallet
+
+
+@router.get("/wallets/{wallet_id}", response_model=WalletRead)
+def get_wallet(
+    wallet_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    service = WalletService(WalletRepository(db))
+    wallet = service.get_wallet(wallet_id)
+    if wallet is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    return wallet
+
+
+@router.patch("/wallets/{wallet_id}", response_model=WalletRead)
+def update_wallet(
+    wallet_id: int,
+    payload: WalletUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    service = WalletService(WalletRepository(db))
+    existing = service.get_wallet(wallet_id)
+    if existing is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    before = {
+        "display_name": existing.display_name,
+        "source_ref": existing.source_ref,
+        "wallet_type": existing.wallet_type.value,
+        "status": existing.status.value,
+    }
+    wallet = service.update_wallet(wallet_id, payload)
+    log_audit_event(
+        actor=user.username,
+        action="UPDATE_WALLET",
+        details={"before": before, "after": {
+            "display_name": wallet.display_name,
+            "source_ref": wallet.source_ref,
+            "wallet_type": wallet.wallet_type.value,
+            "status": wallet.status.value,
+        }},
+    )
+    return wallet
+
+
+# --- Ingestion ---
+
+@router.post("/ingestion/ailink-sync", response_model=IngestionRunRead)
+def run_ailink_sync(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    ensure_default_network(db)
+    service = IngestionService(
+        ingestion_repo=IngestionRunRepository(db),
+        wallet_repo=WalletRepository(db),
+    )
+    run = service.run_ailink_wallet_sync()
+    log_audit_event(
+        actor=user.username,
+        action="TRIGGER_AILINK_SYNC",
+        details=run.stats_json,
+    )
+    return run
+
+
+@router.get("/ingestion/runs", response_model=list[IngestionRunRead])
+def list_ingestion_runs(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    repo = IngestionRunRepository(db)
+    return repo.list()
+
+
+@router.get("/ingestion/runs/{run_id}", response_model=IngestionRunRead)
+def get_ingestion_run(
+    run_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    repo = IngestionRunRepository(db)
+    run = repo.get(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Ingestion run not found")
+    return run
+
+
+# --- Transactions ---
+
+@router.get("/transactions", response_model=list[TransactionRead])
+def list_transactions(
+    wallet_id: int | None = Query(default=None),
+    source_type: WalletSourceType | None = Query(default=None),
+    token_symbol: str | None = Query(default=None),
+    direction: str | None = Query(default=None),
+    date_from: str | None = Query(default=None),
+    date_to: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    service = TransactionService(TransactionRepository(db))
+    txs = service.list_transactions()
+    if wallet_id is not None:
+        txs = [t for t in txs if t.internal_wallet_id == wallet_id]
+    if source_type is not None:
+        txs = [t for t in txs if t.source_type == source_type]
+    if token_symbol is not None:
+        txs = [t for t in txs if t.token_symbol.upper() == token_symbol.upper()]
+    if direction is not None:
+        txs = [t for t in txs if t.direction.value == direction.upper()]
+    if date_from is not None:
+        txs = [t for t in txs if t.tx_datetime >= date_from]
+    if date_to is not None:
+        txs = [t for t in txs if t.tx_datetime <= date_to]
+    return txs
+
+
+@router.get("/transactions/{transaction_id}", response_model=TransactionRead)
+def get_transaction(
+    transaction_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    service = TransactionService(TransactionRepository(db))
+    tx = service.get_transaction(transaction_id)
+    if tx is None:
+        raise HTTPException(status_code=404, detail="Transaction not found")
+    return tx
+
+
+# --- Transaction Comments/Tags ---
+

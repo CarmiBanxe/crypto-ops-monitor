@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import String, ForeignKey, Index, UniqueConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin
@@ -33,3 +33,36 @@ class WalletFolderLink(TimestampMixin, Base):
         ForeignKey("crypto_wallets.id"),
         nullable=False,
     )
+
+
+class WalletTag(TimestampMixin, Base):
+    __tablename__ = "crypto_wallet_tags"
+    __table_args__ = (
+        Index("ix_crypto_wallet_tags_wallet_id", "wallet_id"),
+        Index("ix_crypto_wallet_tags_tag", "tag"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    wallet_id: Mapped[int] = mapped_column(
+        ForeignKey("crypto_wallets.id"),
+        nullable=False,
+    )
+    tag: Mapped[str] = mapped_column(String(120), nullable=False)
+    author: Mapped[str] = mapped_column(String(120), nullable=False)
+
+
+class ApprovalRequest(TimestampMixin, Base):
+    __tablename__ = "crypto_approval_requests"
+    __table_args__ = (
+        Index("ix_crypto_approval_requests_status", "status"),
+        Index("ix_crypto_approval_requests_object_type", "object_type"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    action_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    object_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    object_ref: Mapped[str] = mapped_column(String(255), nullable=False)
+    payload_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, default="PENDING")
+    initiator: Mapped[str] = mapped_column(String(120), nullable=False)
+    approver: Mapped[str | None] = mapped_column(String(120), nullable=True)
