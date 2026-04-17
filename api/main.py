@@ -1,8 +1,10 @@
 from fastapi import FastAPI
 from services.crypto_assets.api.routes import router as crypto_router
+from services.crypto_assets.api.counterparty_routes import router as counterparty_router
 
 app = FastAPI(title="Crypto Ops Monitor", version="0.1.0")
 app.include_router(crypto_router)
+app.include_router(counterparty_router)
 
 
 @app.get("/health")

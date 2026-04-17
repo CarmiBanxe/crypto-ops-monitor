@@ -1,28 +1,29 @@
-from .base import Base, TimestampMixin
+from .base import Base
 from .enums import (
-    CounterpartyKind,
-    Direction,
-    IngestionStatus,
-    IngestionTriggerType,
-    RecordStatus,
     WalletSourceType,
     WalletType,
+    RecordStatus,
+    CounterpartyKind,
+    IngestionTriggerType,
+    IngestionStatus,
+    Direction,
 )
 from .entities import (
-    CanonicalTransaction,
+    Network,
+    Wallet,
     Counterparty,
     CounterpartyWalletLink,
-    IngestionRun,
-    Network,
-    RawTransactionEvent,
     SourceAccount,
-    Wallet,
+    IngestionRun,
+    RawTransactionEvent,
+    CanonicalTransaction,
     WalletBalanceSnapshot,
 )
+from .comments import TransactionComment
+from .folders import WalletFolder, WalletFolderLink
 
 __all__ = [
     "Base",
-    "TimestampMixin",
     "WalletSourceType",
     "WalletType",
     "RecordStatus",
@@ -39,8 +40,7 @@ __all__ = [
     "RawTransactionEvent",
     "CanonicalTransaction",
     "WalletBalanceSnapshot",
+    "TransactionComment",
+    "WalletFolder",
+    "WalletFolderLink",
 ]
-
-from .comments import TransactionComment, TransactionTag
-
-__all__ += ["TransactionComment", "TransactionTag"]

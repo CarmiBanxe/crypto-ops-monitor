@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 
 from api.main import app
-from services.crypto_assets.audit import AUDIT_LOG
+from services.crypto_assets.audit import AUDIT_LOG, log_audit_event
 
 client = TestClient(app)
 
