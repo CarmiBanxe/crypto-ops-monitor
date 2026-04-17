@@ -20,7 +20,7 @@ from .entities import (
     WalletBalanceSnapshot,
 )
 from .comments import TransactionComment
-from .folders import WalletFolder, WalletFolderLink
+from .folders import WalletFolder, WalletFolderLink, WalletTag, ApprovalRequest
 
 __all__ = [
     "Base",
@@ -43,4 +43,6 @@ __all__ = [
     "TransactionComment",
     "WalletFolder",
     "WalletFolderLink",
+    "WalletTag",
+    "ApprovalRequest",
 ]

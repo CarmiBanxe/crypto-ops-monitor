@@ -8,13 +8,23 @@ from services.crypto_assets.models import (
     Network,
     WalletSourceType,
 )
+from services.crypto_assets.models.folders import WalletFolder, WalletFolderLink, WalletTag, ApprovalRequest
 from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.repositories.comment_repository import CommentRepository
+from services.crypto_assets.repositories.folder_repository import FolderRepository
+from services.crypto_assets.repositories.approval_repository import ApprovalRepository
 from services.crypto_assets.schemas.ingestion import IngestionRunRead
 from services.crypto_assets.schemas.transactions import TransactionRead
 from services.crypto_assets.schemas.wallets import WalletCreate, WalletRead, WalletUpdate
+from services.crypto_assets.schemas.folders import (
+    FolderCreate,
+    FolderRead,
+    WalletTagCreate,
+    WalletTagRead,
+    ApprovalRequestRead,
+)
 from services.crypto_assets.security import CurrentUser, get_current_user
 from services.crypto_assets.service.ingestion_service import IngestionService
 from services.crypto_assets.service.transaction_service import TransactionService
@@ -207,6 +217,159 @@ def get_transaction(
         raise HTTPException(status_code=404, detail="Transaction not found")
     return tx
 
+
+
+# --- Folders / Wallet Tags / Approvals ---
+
+@router.get("/folders", response_model=list[FolderRead])
+def list_folders(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    repo = FolderRepository(db)
+    return repo.list_folders()
+
+
+@router.post("/folders", response_model=FolderRead)
+def create_folder(
+    payload: FolderCreate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    repo = FolderRepository(db)
+    folder = repo.create_folder(WalletFolder(
+        name=payload.name,
+        parent_id=payload.parent_id,
+        created_by=user.username,
+    ))
+    log_audit_event(
+        actor=user.username,
+        action="CREATE_WALLET_FOLDER",
+        details={"folder_id": folder.id, "name": folder.name, "parent_id": folder.parent_id},
+    )
+    return folder
+
+
+@router.post("/folders/{folder_id}/wallets/{wallet_id}", status_code=201)
+def add_wallet_to_folder(
+    folder_id: int,
+    wallet_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    wallet_repo = WalletRepository(db)
+    if wallet_repo.get(wallet_id) is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    repo = FolderRepository(db)
+    folder_ids = {f.id for f in repo.list_folders()}
+    if folder_id not in folder_ids:
+        raise HTTPException(status_code=404, detail="Folder not found")
+    link = repo.add_wallet_to_folder(WalletFolderLink(folder_id=folder_id, wallet_id=wallet_id))
+    log_audit_event(
+        actor=user.username,
+        action="ADD_WALLET_TO_FOLDER",
+        details={"folder_id": folder_id, "wallet_id": wallet_id, "link_id": link.id},
+    )
+    return {"id": link.id, "folder_id": folder_id, "wallet_id": wallet_id}
+
+
+@router.get("/wallets/{wallet_id}/tags", response_model=list[WalletTagRead])
+def list_wallet_tags(
+    wallet_id: int,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    wallet_repo = WalletRepository(db)
+    if wallet_repo.get(wallet_id) is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    repo = FolderRepository(db)
+    return repo.list_tags_for_wallet(wallet_id)
+
+
+@router.post("/wallets/{wallet_id}/tags", response_model=WalletTagRead)
+def create_wallet_tag(
+    wallet_id: int,
+    payload: WalletTagCreate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    wallet_repo = WalletRepository(db)
+    if wallet_repo.get(wallet_id) is None:
+        raise HTTPException(status_code=404, detail="Wallet not found")
+    repo = FolderRepository(db)
+    tag = repo.create_wallet_tag(WalletTag(
+        wallet_id=wallet_id,
+        tag=payload.tag,
+        author=user.username,
+    ))
+    log_audit_event(
+        actor=user.username,
+        action="CREATE_WALLET_TAG",
+        details={"wallet_id": wallet_id, "tag": tag.tag},
+    )
+    return tag
+
+
+@router.get("/approvals", response_model=list[ApprovalRequestRead])
+def list_approvals(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    repo = ApprovalRepository(db)
+    return repo.list_pending()
+
+
+@router.post("/approvals", response_model=ApprovalRequestRead)
+def create_approval(
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    repo = ApprovalRepository(db)
+    req = repo.create(ApprovalRequest(
+        action_type=payload["action_type"],
+        object_type=payload["object_type"],
+        object_ref=str(payload["object_ref"]),
+        payload_json=payload.get("payload_json"),
+        status="PENDING",
+        initiator=user.username,
+    ))
+    log_audit_event(
+        actor=user.username,
+        action="CREATE_APPROVAL_REQUEST",
+        details={"approval_id": req.id, "action_type": req.action_type, "object_type": req.object_type},
+    )
+    return req
+
+
+@router.patch("/approvals/{approval_id}", response_model=ApprovalRequestRead)
+def update_approval(
+    approval_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(get_current_user),
+):
+    require_write_access(user)
+    repo = ApprovalRepository(db)
+    req = repo.get(approval_id)
+    if req is None:
+        raise HTTPException(status_code=404, detail="Approval request not found")
+    status_value = payload.get("status")
+    if status_value not in {"APPROVED", "REJECTED"}:
+        raise HTTPException(status_code=422, detail="status must be APPROVED or REJECTED")
+    req.status = status_value
+    req.approver = user.username
+    updated = repo.update(req)
+    log_audit_event(
+        actor=user.username,
+        action="UPDATE_APPROVAL_REQUEST",
+        details={"approval_id": updated.id, "status": updated.status, "approver": updated.approver},
+    )
+    return updated
 
 # --- Transaction Comments/Tags ---
 
