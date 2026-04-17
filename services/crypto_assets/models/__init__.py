@@ -46,3 +46,7 @@ __all__ = [
     "WalletTag",
     "ApprovalRequest",
 ]
+
+from .fiat import FiatRate, XeroPosting, ClassificationRule, FrozenReport, TravelRuleRecord
+
+__all__ += ["FiatRate", "XeroPosting", "ClassificationRule", "FrozenReport", "TravelRuleRecord"]
