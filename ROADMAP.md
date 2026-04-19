@@ -52,7 +52,7 @@ with production HTTP clients, behind `LIVE_MODE` env flag.
 
 | # | Block | Description |
 |---|-------|-------------|
-| B1 | Fix typo | `blockchain_base.py:13` — `deffetch_transactions` → `def fetch_transactions` |
+| B1 | Fix typo | NOT NEEDED — verified in main: `blockchain_base.py` already has correct `def fetch_transactions` abstract method | DONE-nop |
 | B2 | Config skeleton | `pydantic-settings`: `ETH_RPC_URL`, `ETH_RPC_API_KEY`, `BTC_RPC_URL`, `BTC_RPC_API_KEY`, `RPC_TIMEOUT_SEC`, `RPC_MAX_RETRIES`, `LIVE_MODE` (default `false`) |
 | B3 | Real Ethereum RPC | `httpx` JSON-RPC: `eth_getBalance` for ETH, `eth_call`/`balanceOf` for ERC-20 tokens |
 | B4 | Real Bitcoin RPC | `httpx` call to mempool.space or Bitcoin Core JSON-RPC |
