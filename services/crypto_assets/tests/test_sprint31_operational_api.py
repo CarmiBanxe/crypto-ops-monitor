@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 from api.main import app
-from services.crypto_assets.db import SessionLocal
+import services.crypto_assets.db as _db_mod
 from services.crypto_assets.models import Network, Wallet, WalletSourceType, WalletType
 
 client = TestClient(app)
@@ -11,7 +11,7 @@ def auth_headers(token: str = "finance-director-token") -> dict:
 
 
 def seed_wallet_via_db(address="0xop001"):
-    db = SessionLocal()
+    db = _db_mod.SessionLocal()
     try:
         network = db.query(Network).filter_by(identifier="ethereum").first()
         if not network:
