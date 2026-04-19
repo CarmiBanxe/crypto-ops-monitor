@@ -1,6 +1,8 @@
 from decimal import Decimal
-from sqlalchemy import String, Numeric, Index, UniqueConstraint
+
+from sqlalchemy import Index, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
+
 from .base import Base, TimestampMixin
 
 

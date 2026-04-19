@@ -1,9 +1,10 @@
 from fastapi import FastAPI
-from services.crypto_assets.api.routes import router as crypto_router
-from services.crypto_assets.api.counterparty_routes import router as counterparty_router
-from services.crypto_assets.api.comment_export_routes import router as comment_export_router
+
 from services.crypto_assets.api.balance_routes import router as balance_router
+from services.crypto_assets.api.comment_export_routes import router as comment_export_router
+from services.crypto_assets.api.counterparty_routes import router as counterparty_router
 from services.crypto_assets.api.operational_routes import router as operational_router
+from services.crypto_assets.api.routes import router as crypto_router
 
 app = FastAPI(title="Crypto Ops Monitor", version="1.0.0")
 app.include_router(comment_export_router)

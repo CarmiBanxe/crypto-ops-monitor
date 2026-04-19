@@ -1,7 +1,9 @@
 import json
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from services.crypto_assets.models import FrozenReport, CanonicalTransaction
+
+from services.crypto_assets.models import CanonicalTransaction, FrozenReport
 
 
 class FrozenReportService:

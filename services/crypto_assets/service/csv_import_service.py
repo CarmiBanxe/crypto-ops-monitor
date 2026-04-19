@@ -2,8 +2,11 @@ import csv
 import hashlib
 import io
 from decimal import Decimal
+
 from services.crypto_assets.models import (
-    CanonicalTransaction, Direction, WalletSourceType,
+    CanonicalTransaction,
+    Direction,
+    WalletSourceType,
 )
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
 

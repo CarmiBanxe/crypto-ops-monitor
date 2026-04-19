@@ -1,12 +1,12 @@
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
+import services.crypto_assets.db as db_mod
 from api.main import app
 from services.crypto_assets.db import get_db
 from services.crypto_assets.models import Base, Network
-import services.crypto_assets.db as db_mod
 
 
 @pytest.fixture(autouse=True)

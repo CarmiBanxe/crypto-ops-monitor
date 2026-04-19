@@ -1,5 +1,6 @@
 from pydantic import BaseModel, ConfigDict
-from services.crypto_assets.models import WalletSourceType, WalletType, RecordStatus
+
+from services.crypto_assets.models import RecordStatus, WalletSourceType, WalletType
 
 
 class WalletCreate(BaseModel):

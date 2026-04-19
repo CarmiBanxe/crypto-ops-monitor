@@ -1,7 +1,11 @@
-import services.crypto_assets.db as db_mod
 from decimal import Decimal
+
+import services.crypto_assets.db as db_mod
 from services.crypto_assets.models import (
-    Network, CanonicalTransaction, Direction, WalletSourceType,
+    CanonicalTransaction,
+    Direction,
+    Network,
+    WalletSourceType,
 )
 from services.crypto_assets.models.comments import TransactionComment, TransactionTag
 from services.crypto_assets.repositories.comment_repository import CommentRepository

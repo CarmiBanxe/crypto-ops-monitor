@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey, Index, UniqueConstraint, Text
+from sqlalchemy import ForeignKey, Index, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base import Base, TimestampMixin

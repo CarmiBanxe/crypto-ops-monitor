@@ -1,5 +1,5 @@
-from services.crypto_assets.models import Base
 from services.crypto_assets.db import engine
+from services.crypto_assets.models import Base
 
 
 def init_db() -> None:

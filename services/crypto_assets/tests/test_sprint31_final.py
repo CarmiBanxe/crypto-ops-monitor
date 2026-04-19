@@ -1,7 +1,11 @@
 from decimal import Decimal
+
 import services.crypto_assets.db as db_mod
 from services.crypto_assets.models import (
-    Network, Wallet, WalletSourceType, WalletType,
+    Network,
+    Wallet,
+    WalletSourceType,
+    WalletType,
 )
 from services.crypto_assets.repositories.balance_repository import BalanceRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository

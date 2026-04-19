@@ -2,10 +2,10 @@ from services.crypto_assets.models import (
     IngestionRun,
     IngestionStatus,
     IngestionTriggerType,
+    RecordStatus,
     Wallet,
     WalletSourceType,
     WalletType,
-    RecordStatus,
 )
 from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository

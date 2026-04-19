@@ -1,6 +1,6 @@
 import services.crypto_assets.db as db_mod
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
-from services.crypto_assets.service.csv_import_service import CSVImportService, CSVImportError
+from services.crypto_assets.service.csv_import_service import CSVImportError, CSVImportService
 
 
 def test_csv_import_success():
