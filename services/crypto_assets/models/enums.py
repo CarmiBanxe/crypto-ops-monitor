@@ -1,14 +1,14 @@
 import enum
 
 
-class WalletSourceType(str, enum.Enum):
+class WalletSourceType(enum.StrEnum):
     AILINK = "AILINK"
     MANUAL = "MANUAL"
     EXCHANGE = "EXCHANGE"
     STAKING = "STAKING"
 
 
-class WalletType(str, enum.Enum):
+class WalletType(enum.StrEnum):
     CUSTODY = "CUSTODY"
     NON_CUSTODY = "NON_CUSTODY"
     EXCHANGE = "EXCHANGE"
@@ -16,32 +16,32 @@ class WalletType(str, enum.Enum):
     UNKNOWN = "UNKNOWN"
 
 
-class RecordStatus(str, enum.Enum):
+class RecordStatus(enum.StrEnum):
     ACTIVE = "ACTIVE"
     INACTIVE = "INACTIVE"
     DISABLED = "DISABLED"
 
 
-class CounterpartyKind(str, enum.Enum):
+class CounterpartyKind(enum.StrEnum):
     CORPORATE = "CORPORATE"
     INDIVIDUAL = "INDIVIDUAL"
     UNKNOWN = "UNKNOWN"
 
 
-class IngestionTriggerType(str, enum.Enum):
+class IngestionTriggerType(enum.StrEnum):
     MANUAL = "MANUAL"
     SCHEDULED = "SCHEDULED"
     WEBHOOK = "WEBHOOK"
 
 
-class IngestionStatus(str, enum.Enum):
+class IngestionStatus(enum.StrEnum):
     PENDING = "PENDING"
     RUNNING = "RUNNING"
     SUCCEEDED = "SUCCEEDED"
     FAILED = "FAILED"
 
 
-class Direction(str, enum.Enum):
+class Direction(enum.StrEnum):
     IN = "IN"
     OUT = "OUT"
     UNKNOWN = "UNKNOWN"
