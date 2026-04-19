@@ -1,8 +1,9 @@
+from typing import cast
+
 from fastapi.testclient import TestClient
 
 from api.main import app
 from services.crypto_assets.audit import AUDIT_LOG
-from typing import cast
 
 client = TestClient(app)
 

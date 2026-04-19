@@ -1,10 +1,10 @@
 import json
+from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from services.crypto_assets.models import CanonicalTransaction, FrozenReport
-from typing import cast
 
 
 class FrozenReportService:
