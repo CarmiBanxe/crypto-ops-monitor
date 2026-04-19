@@ -1,3 +1,5 @@
+import os
+
 from services.crypto_assets.connectors.mock_binance import MockBinanceAdapter
 from services.crypto_assets.connectors.mock_bitcoin import MockBitcoinConnector
 from services.crypto_assets.connectors.mock_bsc import MockBSCConnector
@@ -5,13 +7,26 @@ from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnecto
 from services.crypto_assets.connectors.mock_kraken import MockKrakenAdapter
 from services.crypto_assets.connectors.mock_overstake import MockOverstakeAdapter
 from services.crypto_assets.connectors.mock_polygon import MockPolygonConnector
+from services.crypto_assets.connectors.real_rpc_base import (
+    RealBitcoinRPCConnector,
+    RealEthereumRPCConnector,
+)
+
+
+def _env_flag(name: str, default: bool = False) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
 class SourceRegistry:
     def __init__(self):
+        live_mode = _env_flag("LIVE_MODE", default=False)
+
         self._blockchain_classes = {
-            "ethereum": MockEthereumConnector,
-            "bitcoin": MockBitcoinConnector,
+            "ethereum": RealEthereumRPCConnector if live_mode else MockEthereumConnector,
+            "bitcoin": RealBitcoinRPCConnector if live_mode else MockBitcoinConnector,
             "polygon": MockPolygonConnector,
             "bsc": MockBSCConnector,
         }
