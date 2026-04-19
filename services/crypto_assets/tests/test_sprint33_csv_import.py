@@ -29,7 +29,7 @@ def test_csv_import_missing_columns_raises():
         bad = "tx_datetime,amount\n2026-04-17,100\n"
         try:
             service.import_csv(bad)
-            assert False, "should have raised"
+            raise AssertionError("should have raised")
         except CSVImportError as e:
             assert "Missing required columns" in str(e)
     finally:
@@ -57,7 +57,7 @@ def test_csv_import_empty_header_raises():
         service = CSVImportService(repo)
         try:
             service.import_csv("")
-            assert False, "should have raised"
+            raise AssertionError("should have raised")
         except CSVImportError:
             pass
     finally:

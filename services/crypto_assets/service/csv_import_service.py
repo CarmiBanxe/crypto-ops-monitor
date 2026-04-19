@@ -2,6 +2,7 @@ import csv
 import hashlib
 import io
 from decimal import Decimal
+from typing import ClassVar
 
 from services.crypto_assets.models import (
     CanonicalTransaction,
@@ -9,7 +10,6 @@ from services.crypto_assets.models import (
     WalletSourceType,
 )
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
-from typing import ClassVar
 
 
 class CSVImportError(Exception):
