@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from services.crypto_assets.models import CanonicalTransaction, FrozenReport
+from typing import cast
 
 
 class FrozenReportService:
@@ -49,4 +50,4 @@ class FrozenReportService:
         report = self.db.get(FrozenReport, report_id)
         if report is None:
             return None
-        return json.loads(report.payload_json)
+        return cast(list[dict], json.loads(report.payload_json))
