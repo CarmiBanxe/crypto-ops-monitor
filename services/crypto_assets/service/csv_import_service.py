@@ -9,6 +9,7 @@ from services.crypto_assets.models import (
     WalletSourceType,
 )
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
+from typing import ClassVar
 
 
 class CSVImportError(Exception):
@@ -16,7 +17,7 @@ class CSVImportError(Exception):
 
 
 class CSVImportService:
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS: ClassVar[list[str]] = [
         "tx_datetime", "direction", "amount", "token_symbol", "tx_hash",
     ]
 
