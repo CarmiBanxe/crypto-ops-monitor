@@ -1,9 +1,10 @@
 import csv
 import io
+from typing import ClassVar
 
 
 class ExportService:
-    headers = [
+    headers: ClassVar[list[str]] = [
         "id",
         "tx_datetime",
         "direction",

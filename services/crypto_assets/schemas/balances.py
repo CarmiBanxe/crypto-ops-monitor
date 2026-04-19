@@ -1,5 +1,7 @@
 from decimal import Decimal
+
 from pydantic import BaseModel, ConfigDict, field_serializer
+
 from services.crypto_assets.models import WalletSourceType
 
 

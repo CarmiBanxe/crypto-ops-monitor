@@ -1,10 +1,10 @@
 import services.crypto_assets.db as db_mod
 from services.crypto_assets.models import Network, WalletSourceType, WalletType
-from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
-from services.crypto_assets.service.wallet_service import WalletService
-from services.crypto_assets.service.ingestion_service import IngestionService
+from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.schemas.wallets import WalletCreate
+from services.crypto_assets.service.ingestion_service import IngestionService
+from services.crypto_assets.service.wallet_service import WalletService
 
 
 def seed_ethereum(db):

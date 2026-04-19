@@ -1,5 +1,6 @@
 """Production-ready RPC connector interfaces. Replace mock bodies with real HTTP clients when credentials are provisioned."""
 from decimal import Decimal
+
 from services.crypto_assets.connectors.blockchain_base import BlockchainConnector
 
 

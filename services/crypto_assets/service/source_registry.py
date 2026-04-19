@@ -1,10 +1,10 @@
 from services.crypto_assets.connectors.mock_binance import MockBinanceAdapter
 from services.crypto_assets.connectors.mock_bitcoin import MockBitcoinConnector
 from services.crypto_assets.connectors.mock_bsc import MockBSCConnector
+from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnector
 from services.crypto_assets.connectors.mock_kraken import MockKrakenAdapter
 from services.crypto_assets.connectors.mock_overstake import MockOverstakeAdapter
 from services.crypto_assets.connectors.mock_polygon import MockPolygonConnector
-from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnector
 
 
 class SourceRegistry:

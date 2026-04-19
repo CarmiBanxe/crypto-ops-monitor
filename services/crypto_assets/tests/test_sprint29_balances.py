@@ -1,11 +1,15 @@
 from decimal import Decimal
+
 import services.crypto_assets.db as db_mod
+from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnector
 from services.crypto_assets.models import (
-    Network, Wallet, WalletSourceType, WalletType,
+    Network,
+    Wallet,
+    WalletSourceType,
+    WalletType,
 )
 from services.crypto_assets.repositories.balance_repository import BalanceRepository
 from services.crypto_assets.service.balance_service import BalanceService
-from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnector
 
 
 def get_or_create_network(db, identifier="ethereum", name="Ethereum"):

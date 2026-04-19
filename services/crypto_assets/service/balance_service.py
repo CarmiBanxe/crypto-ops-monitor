@@ -1,5 +1,6 @@
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, UTC
+
 from services.crypto_assets.models import WalletBalanceSnapshot, WalletSourceType
 from services.crypto_assets.repositories.balance_repository import BalanceRepository
 

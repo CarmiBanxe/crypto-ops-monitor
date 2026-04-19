@@ -1,25 +1,26 @@
 from decimal import Decimal
+
 from sqlalchemy import (
+    JSON,
+    Enum,
+    ForeignKey,
+    Index,
+    Numeric,
     String,
     Text,
-    ForeignKey,
     UniqueConstraint,
-    Enum,
-    Numeric,
-    JSON,
-    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin
 from .enums import (
+    CounterpartyKind,
+    Direction,
+    IngestionStatus,
+    IngestionTriggerType,
+    RecordStatus,
     WalletSourceType,
     WalletType,
-    RecordStatus,
-    CounterpartyKind,
-    IngestionTriggerType,
-    IngestionStatus,
-    Direction,
 )
 
 

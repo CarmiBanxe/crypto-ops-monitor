@@ -1,4 +1,5 @@
 from pydantic import BaseModel, ConfigDict
+
 from services.crypto_assets.models import CounterpartyKind, RecordStatus
 
 

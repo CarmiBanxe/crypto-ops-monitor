@@ -1,9 +1,10 @@
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from decimal import Decimal
+
 from services.crypto_assets.models import IngestionRun, IngestionStatus, IngestionTriggerType, WalletSourceType
+from services.crypto_assets.repositories.balance_repository import BalanceRepository
 from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
-from services.crypto_assets.repositories.balance_repository import BalanceRepository
 from services.crypto_assets.service.balance_service import BalanceService
 from services.crypto_assets.service.source_registry import SourceRegistry
 

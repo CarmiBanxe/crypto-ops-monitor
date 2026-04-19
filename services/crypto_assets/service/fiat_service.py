@@ -1,7 +1,9 @@
+from datetime import UTC, datetime
 from decimal import Decimal
-from datetime import datetime, UTC
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from services.crypto_assets.models import FiatRate
 
 

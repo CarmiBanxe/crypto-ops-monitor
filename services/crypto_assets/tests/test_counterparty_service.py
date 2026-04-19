@@ -1,16 +1,16 @@
 import services.crypto_assets.db as db_mod
 from services.crypto_assets.models import Network, WalletSourceType, WalletType
-from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.repositories.counterparty_repository import CounterpartyRepository
 from services.crypto_assets.repositories.counterparty_wallet_link_repository import CounterpartyWalletLinkRepository
-from services.crypto_assets.service.wallet_service import WalletService
-from services.crypto_assets.service.counterparty_service import CounterpartyService
-from services.crypto_assets.schemas.wallets import WalletCreate
+from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.schemas.counterparties import (
     CounterpartyCreate,
     CounterpartyUpdate,
     CounterpartyWalletLinkCreate,
 )
+from services.crypto_assets.schemas.wallets import WalletCreate
+from services.crypto_assets.service.counterparty_service import CounterpartyService
+from services.crypto_assets.service.wallet_service import WalletService
 
 
 def seed_ethereum(db):

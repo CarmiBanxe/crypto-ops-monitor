@@ -1,8 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from services.crypto_assets.models import XeroPosting, CanonicalTransaction, Direction
-from services.crypto_assets.service.fiat_service import FiatConversionService
+
+from services.crypto_assets.models import CanonicalTransaction, Direction, XeroPosting
 from services.crypto_assets.service.classification_service import ClassificationService
+from services.crypto_assets.service.fiat_service import FiatConversionService
 
 
 class XeroIntegrationService:

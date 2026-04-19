@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi.testclient import TestClient
 
 from api.main import app
@@ -17,7 +19,7 @@ def ops_headers() -> dict:
 def ensure_wallet() -> int:
     wallets = client.get("/crypto/wallets", headers=auth_headers()).json()
     if wallets:
-        return wallets[0]["id"]
+        return cast(int, wallets[0]["id"])
     created = client.post(
         "/crypto/wallets",
         headers=auth_headers(),
@@ -30,7 +32,7 @@ def ensure_wallet() -> int:
         },
     )
     assert created.status_code == 200
-    return created.json()["id"]
+    return cast(int, created.json()["id"])
 
 
 def test_folder_tag_and_approval_api_flow():

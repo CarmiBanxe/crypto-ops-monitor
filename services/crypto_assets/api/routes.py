@@ -7,27 +7,27 @@ from services.crypto_assets.models import (
     Network,
     WalletSourceType,
 )
-from services.crypto_assets.models.folders import WalletFolder, WalletFolderLink, WalletTag, ApprovalRequest
+from services.crypto_assets.models.folders import ApprovalRequest, WalletFolder, WalletFolderLink, WalletTag
+from services.crypto_assets.repositories.approval_repository import ApprovalRepository
+from services.crypto_assets.repositories.folder_repository import FolderRepository
 from services.crypto_assets.repositories.ingestion_repository import IngestionRunRepository
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
-from services.crypto_assets.repositories.folder_repository import FolderRepository
-from services.crypto_assets.repositories.approval_repository import ApprovalRepository
-from services.crypto_assets.schemas.ingestion import IngestionRunRead
-from services.crypto_assets.schemas.transactions import TransactionRead
-from services.crypto_assets.schemas.wallets import WalletCreate, WalletRead, WalletUpdate
 from services.crypto_assets.schemas.folders import (
+    ApprovalRequestRead,
     FolderCreate,
     FolderRead,
     WalletTagCreate,
     WalletTagRead,
-    ApprovalRequestRead,
 )
+from services.crypto_assets.schemas.ingestion import IngestionRunRead
+from services.crypto_assets.schemas.transactions import TransactionRead
+from services.crypto_assets.schemas.wallets import WalletCreate, WalletRead, WalletUpdate
 from services.crypto_assets.security import CurrentUser, get_current_user
 from services.crypto_assets.service.ingestion_service import IngestionService
+from services.crypto_assets.service.rbac import require_write_access
 from services.crypto_assets.service.transaction_service import TransactionService
 from services.crypto_assets.service.wallet_service import WalletService
-from services.crypto_assets.service.rbac import require_write_access
 
 router = APIRouter(prefix="/crypto", tags=["crypto"])
 

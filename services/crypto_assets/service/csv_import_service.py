@@ -2,8 +2,12 @@ import csv
 import hashlib
 import io
 from decimal import Decimal
+from typing import ClassVar
+
 from services.crypto_assets.models import (
-    CanonicalTransaction, Direction, WalletSourceType,
+    CanonicalTransaction,
+    Direction,
+    WalletSourceType,
 )
 from services.crypto_assets.repositories.transaction_repository import TransactionRepository
 
@@ -13,7 +17,7 @@ class CSVImportError(Exception):
 
 
 class CSVImportService:
-    REQUIRED_COLUMNS = [
+    REQUIRED_COLUMNS: ClassVar[list[str]] = [
         "tx_datetime", "direction", "amount", "token_symbol", "tx_hash",
     ]
 

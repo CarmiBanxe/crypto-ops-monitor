@@ -1,8 +1,10 @@
 from decimal import Decimal
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from services.crypto_assets.audit import log_audit_event
+from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnector
 from services.crypto_assets.db import get_db
 from services.crypto_assets.models import WalletSourceType
 from services.crypto_assets.repositories.balance_repository import BalanceRepository
@@ -11,7 +13,6 @@ from services.crypto_assets.schemas.balances import BalanceSnapshotCreate, Balan
 from services.crypto_assets.security import CurrentUser, get_current_user
 from services.crypto_assets.service.balance_service import BalanceService
 from services.crypto_assets.service.rbac import require_write_access
-from services.crypto_assets.connectors.mock_ethereum import MockEthereumConnector
 
 router = APIRouter(prefix="/crypto", tags=["balances"])
 

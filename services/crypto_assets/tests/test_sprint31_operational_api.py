@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
-from api.main import app
+
 import services.crypto_assets.db as _db_mod
+from api.main import app
 from services.crypto_assets.models import Network, Wallet, WalletSourceType, WalletType
 
 client = TestClient(app)

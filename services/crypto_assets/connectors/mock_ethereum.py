@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from services.crypto_assets.connectors.blockchain_base import BlockchainConnector
 
 

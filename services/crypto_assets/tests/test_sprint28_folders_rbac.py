@@ -1,10 +1,11 @@
-import services.crypto_assets.db as db_mod
 from fastapi.testclient import TestClient
+
+import services.crypto_assets.db as db_mod
 from api.main import app
 from services.crypto_assets.models import Network, WalletSourceType, WalletType
-from services.crypto_assets.models.folders import WalletFolder, WalletFolderLink, WalletTag, ApprovalRequest
-from services.crypto_assets.repositories.folder_repository import FolderRepository
+from services.crypto_assets.models.folders import ApprovalRequest, WalletFolder, WalletFolderLink, WalletTag
 from services.crypto_assets.repositories.approval_repository import ApprovalRepository
+from services.crypto_assets.repositories.folder_repository import FolderRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
 from services.crypto_assets.schemas.wallets import WalletCreate
 from services.crypto_assets.service.wallet_service import WalletService

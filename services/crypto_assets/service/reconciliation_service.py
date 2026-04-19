@@ -1,4 +1,5 @@
 from decimal import Decimal
+
 from services.crypto_assets.repositories.balance_repository import BalanceRepository
 from services.crypto_assets.repositories.wallet_repository import WalletRepository
 
