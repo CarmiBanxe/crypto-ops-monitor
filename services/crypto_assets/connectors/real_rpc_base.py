@@ -9,7 +9,7 @@ Without rpc_url the connector stays in safe-stub mode returning Decimal("0").
 from __future__ import annotations
 
 from decimal import Decimal
-from typing import ClassVar, cast
+from typing import ClassVar
 
 import httpx
 
@@ -86,13 +86,23 @@ class RealEthereumRPCConnector(BlockchainConnector):
             "method": method,
             "params": params,
         }
-        with httpx.Client(timeout=self._timeout) as client:
-            response = client.post(self.rpc_url, json=payload)  # type: ignore[arg-type]
-            response.raise_for_status()
-            data = response.json()
-        if "error" in data:
-            raise RpcError(f"RPC error: {data['error']}")
-        return cast(str, data["result"])
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.post(self.rpc_url, json=payload)  # type: ignore[arg-type]
+                response.raise_for_status()
+                data = response.json()
+        except httpx.HTTPError as exc:
+            raise RpcError(f"JSON-RPC transport error for {method}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise RpcError(f"JSON-RPC malformed response for {method}: {data!r}")
+        if data.get("error"):
+            raise RpcError(f"RPC error for {method}: {data['error']}")
+        result = data.get("result")
+        if not isinstance(result, str):
+            raise RpcError(
+                f"JSON-RPC missing/invalid result for {method}: {data!r}"
+            )
+        return result
 
 
 class RealBitcoinRPCConnector(BlockchainConnector):
@@ -128,10 +138,15 @@ class RealBitcoinRPCConnector(BlockchainConnector):
 
     def _fetch_btc_balance(self, address: str) -> Decimal:
         url = f"{self.rpc_url}/address/{address}"
-        with httpx.Client(timeout=self._timeout) as client:
-            response = client.get(url)
-            response.raise_for_status()
-            data = response.json()
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.get(url)
+                response.raise_for_status()
+                data = response.json()
+        except httpx.HTTPError as exc:
+            raise RpcError(f"BTC REST transport error for {address}: {exc}") from exc
+        if not isinstance(data, dict):
+            raise RpcError(f"BTC REST malformed response for {address}: {data!r}")
         chain = data.get("chain_stats", {})
         funded = int(chain.get("funded_txo_sum", 0))
         spent = int(chain.get("spent_txo_sum", 0))

@@ -5,7 +5,7 @@ import httpx
 import pytest
 import respx
 
-from services.crypto_assets.connectors.real_rpc_base import RealBitcoinRPCConnector
+from services.crypto_assets.connectors.real_rpc_base import RealBitcoinRPCConnector, RpcError
 
 RPC_URL = "https://mempool.example/api"
 
@@ -38,5 +38,5 @@ def test_non_btc_token_returns_zero_without_http_call():
 def test_http_error_raises_runtime_error():
     respx.get(f"{RPC_URL}/address/bc1qxyz").mock(return_value=httpx.Response(500, text="server error"))
     c = RealBitcoinRPCConnector(rpc_url=RPC_URL)
-    with pytest.raises(httpx.HTTPStatusError):
+    with pytest.raises(RpcError):  # hardened: transport errors wrap into domain RpcError (RuntimeError)
         c.fetch_balance("bc1qxyz", "BTC")
